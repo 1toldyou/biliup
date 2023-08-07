@@ -400,10 +400,10 @@ class BiliBili:
             logger.debug(f"preupload: {ret}")
             if preferred_upos_cdn:
                 original_endpoint: str = ret['endpoint']
-                if re.match(r'//upos-(sz|cs)-upcdn(bda2|ws|qn)\.bilivideo\.com', original_endpoint):
-                    if re.match(r'bda2|qn|ws', preferred_upos_cdn):
+                if re.match(r'//upos-(sz|cs)-upcdn(bda2|qn|qnhk|ws)\.bilivideo\.com', original_endpoint):
+                    if re.match(r'bda2|qn|qnhk|ws', preferred_upos_cdn):
                         logger.debug(f"Preferred UpOS CDN: {preferred_upos_cdn}")
-                        new_endpoint = re.sub(r'upcdn(bda2|qn|ws)', f'upcdn{preferred_upos_cdn}', original_endpoint)
+                        new_endpoint = re.sub(r'upcdn(bda2|qn|qnhk|ws)', f'upcdn{preferred_upos_cdn}', original_endpoint)
                         logger.debug(f"{original_endpoint} => {new_endpoint}")
                         ret['endpoint'] = new_endpoint
                     else:
