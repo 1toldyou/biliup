@@ -11,7 +11,7 @@ import urllib.parse
 from dataclasses import asdict, dataclass, field, InitVar
 from json import JSONDecodeError
 from os.path import splitext, basename
-from typing import Union, Any, List
+from typing import Any, List, Optional, Union
 from urllib import parse
 from urllib.parse import quote
 
@@ -342,7 +342,7 @@ class BiliBili:
         bos: {"os":"bos","query":"bucket=bvcupcdnboshb&probe_version=20221109",
         "probe_url":"??"}
         """
-        preferred_upos_cdn = None
+        preferred_upos_cdn: Optional[str] = None
         if not self._auto_os:
             if lines == 'kodo':
                 self._auto_os = {"os": "kodo", "query": "bucket=bvcupcdnkodobm&probe_version=20221109",
@@ -405,17 +405,23 @@ class BiliBili:
             ret = resp.json()
             logger.debug(f"preupload: {ret}")
             if preferred_upos_cdn:
-                original_endpoint: str = ret['endpoint']
-                if re.match(r'//upos-(sz|cs)-upcdn(bda2|ws|qn)\.bilivideo\.com', original_endpoint):
-                    if re.match(r'bda2|qn|ws', preferred_upos_cdn):
-                        logger.debug(f"Preferred UpOS CDN: {preferred_upos_cdn}")
-                        new_endpoint = re.sub(r'upcdn(bda2|qn|ws)', f'upcdn{preferred_upos_cdn}', original_endpoint)
-                        logger.debug(f"{original_endpoint} => {new_endpoint}")
-                        ret['endpoint'] = new_endpoint
-                    else:
-                        logger.error(f"Unrecognized preferred_upos_cdn: {preferred_upos_cdn}")
+                upcdn = f"upcdn{preferred_upos_cdn}."  # 之前有过upcdnqn和upcdnqnhk  避免额外的后缀造成误匹配
+                if upcdn in ret['endpoint']:
+                    logger.debug(f"默认分配的 upcdn 已为 {preferred_upos_cdn}")
                 else:
-                    logger.warning(f"Assigned UpOS endpoint {original_endpoint} was never seen before, something else might have changed, so will not modify it")
+                    original_endpoints: List[str] = ret['endpoints']
+                    endpoint_modified = False
+                    for endpoint in original_endpoints:
+                        if upcdn in endpoint:
+                            logger.debug(f"{ret['endpoint']} => {endpoint}")
+                            ret['endpoint'] = endpoint
+                            endpoint_modified = True
+                            break
+                    # END for
+                    if not endpoint_modified:
+                        logger.warn(f"未在 {original_endpoints} 中找到 {upcdn}")
+                # END if
+            # END if
             return asyncio.run(upload(f, total_size, ret, tasks=tasks))
 
     async def cos(self, file, total_size, ret, chunk_size=10485760, tasks=3, internal=False):
