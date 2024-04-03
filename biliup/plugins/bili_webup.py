@@ -351,10 +351,6 @@ class BiliBili:
                 self._auto_os = {"os": "upos", "query": "upcdn=bda2&probe_version=20221109",
                                  "probe_url": "//upos-sz-upcdnbda2.bilivideo.com/OK"}
                 preferred_upos_cdn = 'bda2'
-            elif lines == 'cs-bda2':
-                self._auto_os = {"os": "upos", "query": "upcdn=bda2&probe_version=20221109",
-                                 "probe_url": "//upos-cs-upcdnbda2.bilivideo.com/OK"}
-                preferred_upos_cdn = 'bda2'
             elif lines == 'ws':
                 self._auto_os = {"os": "upos", "query": "upcdn=ws&probe_version=20221109",
                                  "probe_url": "//upos-sz-upcdnws.bilivideo.com/OK"}
@@ -363,10 +359,10 @@ class BiliBili:
                 self._auto_os = {"os": "upos", "query": "upcdn=qn&probe_version=20221109",
                                  "probe_url": "//upos-sz-upcdnqn.bilivideo.com/OK"}
                 preferred_upos_cdn = 'qn'
-            elif lines == 'cs-qn':
-                self._auto_os = {"os": "upos", "query": "upcdn=qn&probe_version=20221109",
-                                 "probe_url": "//upos-cs-upcdnqn.bilivideo.com/OK"}
-                preferred_upos_cdn = 'qn'
+            elif lines == 'txa':
+                self._auto_os = {"os": "upos", "query": "upcdn=txa&probe_version=20221109",
+                                 "probe_url": "//upos-cs-upcdntxa.bilivideo.com/OK"}
+                preferred_upos_cdn = 'txa'
             elif lines == 'cos':
                 self._auto_os = {"os": "cos", "query": "",
                                  "probe_url": ""}
@@ -374,6 +370,8 @@ class BiliBili:
                 self._auto_os = {"os": "cos-internal", "query": "",
                                  "probe_url": ""}
             else:
+                if not lines == 'AUTO':
+                    logger.error(f"no match for lines: {lines}")
                 self._auto_os = self.probe()
             logger.info(f"线路选择 => {self._auto_os['os']}: {self._auto_os['query']}. time: {self._auto_os.get('cost')}")
         if self._auto_os['os'] == 'upos':
@@ -411,10 +409,10 @@ class BiliBili:
                 else:
                     original_endpoints: List[str] = ret['endpoints']
                     endpoint_modified = False
-                    for endpoint in original_endpoints:
-                        if upcdn in endpoint:
-                            logger.debug(f"{ret['endpoint']} => {endpoint}")
-                            ret['endpoint'] = endpoint
+                    for endpoint_hostname in original_endpoints:
+                        if upcdn in endpoint_hostname:
+                            logger.debug(f"{ret['endpoint']} => {endpoint_hostname}")
+                            ret['endpoint'] = endpoint_hostname
                             endpoint_modified = True
                             break
                     # END for
