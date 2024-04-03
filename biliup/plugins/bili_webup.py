@@ -498,7 +498,7 @@ class BiliBili:
                 logger.info("上传出现问题，尝试重连，次数：" + str(ii))
                 time.sleep(15)
 
-    async def kodo(self, file, total_size, ret, chunk_size=4194304, tasks=3):
+    async def kodo(self, file, total_size, ret, chunk_size=4194304, tasks=3) -> dict:
         filename = file.name
         bili_filename = ret['bili_filename']
         key = ret['key']
@@ -536,7 +536,7 @@ class BiliBili:
             raise Exception(r)
         return {"title": splitext(filename)[0], "filename": bili_filename, "desc": ""}
 
-    async def upos(self, file, total_size, ret, tasks=3):
+    async def upos(self, file, total_size, ret, tasks=3) -> dict:
         filename = file.name
         chunk_size = ret['chunk_size']
         auth = ret["auth"]
@@ -577,17 +577,21 @@ class BiliBili:
             'profile': 'ugcupos/bup'
         }
         attempt = 0
-        while attempt <= 5:  # 一旦放弃就会丢失前面所有的进度，多试几次吧
+        while attempt < 10:  # 一旦放弃就会丢失前面所有的进度，多试几次吧
             try:
-                r = self.__session.post(url, params=p, json={"parts": parts}, headers=headers, timeout=15).json()
+                r = self.__session.post(url, params=p, json={"parts": parts}, headers=headers, timeout=20+attempt).json()  # will still timeout even given longer time
                 if r.get('OK') == 1:
                     logger.info(f'{filename} uploaded >> {total_size / 1000 / 1000 / cost:.2f}MB/s. {r}')
                     return {"title": splitext(filename)[0], "filename": splitext(basename(upos_uri))[0], "desc": ""}
-                raise IOError(r)
-            except IOError:
-                attempt += 1
-                logger.info(f"请求合并分片时出现问题，尝试重连，次数：" + str(attempt))
-                time.sleep(15)
+                else:
+                    logger.error(r)
+            except IOError as e:  # Read timed out.
+                logger.error(e)
+            logger.info(f"请求合并分片时出现问题，尝试重连，次数：" + str(attempt))
+            attempt += 1
+            time.sleep(15)
+        # END while
+        raise Exception(f"上传失败 (合并分片时出现问题): {filename}")
 
     @staticmethod
     async def _upload(params, file, chunk_size, afunc, tasks=3):
@@ -610,6 +614,7 @@ class BiliBili:
                         break
                     except (asyncio.TimeoutError, aiohttp.ClientError) as e:
                         logger.error(f"retry chunk{clone['chunk']} >> {i + 1}. {e}")
+                # TODO: handle situation when it still not succeed after 10 times (currently it will just continue)
 
         async with aiohttp.ClientSession() as session:
             await asyncio.gather(*[upload_chunk() for _ in range(tasks)])
