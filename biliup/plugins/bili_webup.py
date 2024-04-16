@@ -343,23 +343,32 @@ class BiliBili:
         "probe_url":"??"}
         """
         preferred_upos_cdn: Optional[str] = None
+        preferred_upos_zone: Optional[str] = None
         if not self._auto_os:
             if lines == 'kodo':
                 self._auto_os = {"os": "kodo", "query": "bucket=bvcupcdnkodobm&probe_version=20221109",
                                  "probe_url": "//up-na0.qbox.me/crossdomain.xml"}
-            elif lines == 'bda2':
+            elif (lines == 'bda2' or
+                  lines == 'bda2-cs' or
+                  lines == 'bda2-sz'):
                 self._auto_os = {"os": "upos", "query": "upcdn=bda2&probe_version=20221109",
                                  "probe_url": "//upos-sz-upcdnbda2.bilivideo.com/OK"}
                 preferred_upos_cdn = 'bda2'
-            elif lines == 'ws':
+            elif (lines == 'ws' or
+                  lines == 'ws-cs' or
+                  lines == 'ws-sz'):
                 self._auto_os = {"os": "upos", "query": "upcdn=ws&probe_version=20221109",
                                  "probe_url": "//upos-sz-upcdnws.bilivideo.com/OK"}
                 preferred_upos_cdn = 'ws'
-            elif lines == 'qn':
+            elif (lines == 'qn' or
+                  lines == 'qn-cs' or
+                  lines == 'qn-sz'):
                 self._auto_os = {"os": "upos", "query": "upcdn=qn&probe_version=20221109",
                                  "probe_url": "//upos-sz-upcdnqn.bilivideo.com/OK"}
                 preferred_upos_cdn = 'qn'
-            elif lines == 'txa':
+            elif (lines == 'txa' or
+                  lines == 'txa-cs' or
+                  lines == 'txa-sz'):
                 self._auto_os = {"os": "upos", "query": "upcdn=txa&probe_version=20221109",
                                  "probe_url": "//upos-cs-upcdntxa.bilivideo.com/OK"}
                 preferred_upos_cdn = 'txa'
@@ -373,6 +382,12 @@ class BiliBili:
                 if not lines == 'AUTO':
                     logger.error(f"no match for lines: {lines}")
                 self._auto_os = self.probe()
+            if self._auto_os["os"] == 'upos':
+                if lines.endswith("-cs"):
+                    preferred_upos_zone = 'cs'
+                elif lines.endswith("-sz"):
+                    preferred_upos_zone = 'sz'
+            # END if
             logger.info(f"线路选择 => {self._auto_os['os']}: {self._auto_os['query']}. time: {self._auto_os.get('cost')}")
         if self._auto_os['os'] == 'upos':
             upload = self.upos
@@ -397,6 +412,8 @@ class BiliBili:
                 'name': f.name,
                 'size': total_size,
             }
+            if preferred_upos_zone:
+                query['zone'] = preferred_upos_zone
             resp = self.__session.get(
                 f"https://member.bilibili.com/preupload?{self._auto_os['query']}", params=query,
                 timeout=5)
@@ -417,7 +434,7 @@ class BiliBili:
                             break
                     # END for
                     if not endpoint_modified:
-                        logger.warn(f"未在 {original_endpoints} 中找到 {upcdn}")
+                        logger.warn(f"未在 {original_endpoints} 中找到 {preferred_upos_cdn}")
                 # END if
             # END if
             return asyncio.run(upload(f, total_size, ret, tasks=tasks))
